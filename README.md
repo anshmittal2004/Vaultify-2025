@@ -8,6 +8,8 @@
   <img src="https://raw.githubusercontent.com/anshmittal2004/Vaultify-2025/main/public/logo.png" alt="Vaultify Logo" width="200" height="200">
   
   <h3>Your all-in-one dashboard for real-time cryptocurrency updates, market analytics, and financial news.</h3>
+
+  [Live Demo](https://vaultify-2025.vercel.app/)
 </div>
 
 ## 🚀 Features
@@ -114,10 +116,10 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ---
 
 <div align="center">
-  <h3>Connect With Us</h3>
-  <a href="https://twitter.com/vaultify" target="_blank"><img src="https://img.shields.io/badge/Twitter-1DA1F2?style=for-the-badge&logo=twitter&logoColor=white" alt="Twitter"></a>
-  <a href="https://discord.gg/vaultify" target="_blank"><img src="https://img.shields.io/badge/Discord-7289DA?style=for-the-badge&logo=discord&logoColor=white" alt="Discord"></a>
-  <a href="https://t.me/vaultify" target="_blank"><img src="https://img.shields.io/badge/Telegram-2CA5E0?style=for-the-badge&logo=telegram&logoColor=white" alt="Telegram"></a>
+  <h3>Connect With Me</h3>
+  <a href="https://linkedin.com/in/anshmittal2004" target="_blank"><img src="https://img.shields.io/badge/LinkedIn-0077B5?style=for-the-badge&logo=linkedin&logoColor=white" alt="LinkedIn"></a>
+  <a href="https://https://anshmittal-portfolio.vercel.app/" target="_blank"><img src="https://img.shields.io/badge/Portfolio-FF5722?style=for-the-badge&logo=todoist&logoColor=white" alt="Portfolio"></a>
+  <a href="https://twitter.com/anshmittal2004" target="_blank"><img src="https://img.shields.io/badge/Twitter-1DA1F2?style=for-the-badge&logo=twitter&logoColor=white" alt="Twitter"></a>
 </div>
 
 <div align="center">
