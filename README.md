@@ -8,8 +8,6 @@
   <img src="https://raw.githubusercontent.com/anshmittal2004/Vaultify-2025/main/public/logo.png" alt="Vaultify Logo" width="200" height="200">
   
   <h3>Your all-in-one dashboard for real-time cryptocurrency updates, market analytics, and financial news.</h3>
-
-  [Live Demo](https://vaultify-2025.vercel.app/) 
 </div>
 
 ## 🚀 Features
