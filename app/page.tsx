@@ -24,10 +24,10 @@ export default function Page() {
   const [news, setNews] = useState<string[]>([])
   const [commodities, setCommodities] = useState<{ name: string; price: number; change: number; lastUpdated: string }[]>([])
   const [soundEnabled, setSoundEnabled] = useState(true)
-  const [audio] = useState(new Audio("https://www.soundjay.com/buttons/button-1a.mp3")) // Soft touch sound
+  const [audio] = useState(typeof Audio !== "undefined" ? new Audio("https://www.soundjay.com/buttons/button-1a.mp3") : null) // Soft touch sound
   const [selectedCurrencies] = useState(["INR", "EUR", "AED", "USD", "GBP"])
   const [defaultCurrency, setDefaultCurrency] = useState("USD")
-  const exchangeRates = {
+  const exchangeRates: Record<string, number> = {
     INR: 85.42, // Approx USD to INR rate
     EUR: 0.95,  // Approx USD to EUR rate
     AED: 3.67,  // Approx USD to AED rate
@@ -39,8 +39,8 @@ export default function Page() {
   const toggleSettings = () => setSettingsOpen(!settingsOpen)
   const toggleSound = () => {
     setSoundEnabled(!soundEnabled)
-    if (!soundEnabled) audio.play().catch(() => {})
-    else audio.pause()
+    if (audio && !soundEnabled) audio.play().catch(() => {})
+    else if (audio) audio.pause()
   }
   const calculateProfit = () => {
     const amount = parseFloat(profitInput) || 0
@@ -70,11 +70,11 @@ export default function Page() {
         `Tron TRX hits new ATH - ${new Date().toLocaleTimeString()}`,
       ].sort(() => Math.random() - 0.5)
       setNews(newNews)
-      if (soundEnabled) audio.play().catch(() => {}) // Play touch sound on update
+      if (audio && soundEnabled) audio.play().catch(() => {}) // Play touch sound on update
     }
     fetchNews()
     const interval = setInterval(fetchNews, 10000)
-    audio.volume = 0.3 // Moderate volume for touch sound
+    if (audio) audio.volume = 0.3 // Moderate volume for touch sound
 
     const fetchCommodities = () => {
       const newCommodities = [
@@ -136,7 +136,9 @@ export default function Page() {
   }
 
   const handleExploreMore = () => {
-    window.location.href = "https://www.binance.com"
+    if (typeof window !== "undefined") {
+      window.location.href = "https://www.binance.com"
+    }
   }
 
   return (
@@ -244,16 +246,18 @@ export default function Page() {
                 change={{ value: "$1,340", percentage: "+1.2%", isPositive: true }}
               />
             </div>
-            <Card className="mt-6 p-6">
-              <div className="mb-4 flex items-center justify-between">
-                <h2 className="text-lg font-semibold">Market Pulse</h2>
-                <div className="flex gap-2">
-                  <Button size="sm" variant="ghost">1H</Button>
-                  <Button size="sm" variant="ghost">24H</Button>
-                  <Button size="sm" variant="ghost">7D</Button>
+            <Card className="mt-6">
+              <CardContent className="p-6">
+                <div className="mb-4 flex items-center justify-between">
+                  <h2 className="text-lg font-semibold">Market Pulse</h2>
+                  <div className="flex gap-2">
+                    <Button size="sm" variant="ghost">1H</Button>
+                    <Button size="sm" variant="ghost">24H</Button>
+                    <Button size="sm" variant="ghost">7D</Button>
+                  </div>
                 </div>
-              </div>
-              <StatsChart />
+                <StatsChart />
+              </CardContent>
             </Card>
             <div className="mt-6">
               <div className="mb-4">
@@ -278,24 +282,26 @@ export default function Page() {
                 Explore More
               </Button>
             </div>
-            <Card className="mt-6 p-6 min-h-[20rem] max-h-[30rem]">
-              <h3 className="text-lg font-semibold mb-2">Live News Dashboard</h3>
-              <div className="overflow-hidden h-[18rem] whitespace-nowrap bg-gray-800 rounded-lg">
-                <div className="animate-marquee inline-block text-yellow-300">
-                  {news.map((item, index) => (
-                    <span key={index} className="mx-4 inline-block">{item}</span>
-                  ))}
+            <Card className="mt-6">
+              <CardContent className="p-6 min-h-[20rem] max-h-[30rem]">
+                <h3 className="text-lg font-semibold mb-2">Live News Dashboard</h3>
+                <div className="overflow-hidden h-[18rem] whitespace-nowrap bg-gray-800 rounded-lg">
+                  <div className="animate-marquee inline-block text-yellow-300">
+                    {news.map((item, index) => (
+                      <span key={index} className="mx-4 inline-block">{item}</span>
+                    ))}
+                  </div>
                 </div>
-              </div>
-              <div className="mt-4 text-center">
-                <Button
-                  variant="outline"
-                  onClick={handleMoreNews}
-                  className="text-blue-400 hover:scale-105 hover:shadow-lg transition-transform duration-300"
-                >
-                  More Live News
-                </Button>
-              </div>
+                <div className="mt-4 text-center">
+                  <Button
+                    variant="outline"
+                    onClick={handleMoreNews}
+                    className="text-blue-400 hover:scale-105 hover:shadow-lg transition-transform duration-300"
+                  >
+                    More Live News
+                  </Button>
+                </div>
+              </CardContent>
             </Card>
             <div className="mt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {/* Chart Section */}
@@ -335,7 +341,7 @@ export default function Page() {
                     <p>Last Updated: {commodity.lastUpdated}</p>
                     {selectedCurrencies.map((currency) => (
                       <div key={`${commodity.name}-${currency}`} className="text-sm">
-                        {currency}: {((commodity.price * (exchangeRates[currency as keyof typeof exchangeRates] || 1)).toFixed(2))} {currency === "INR" ? "₹" : currency === "EUR" ? "€" : currency === "AED" ? "د.إ" : currency === "GBP" ? "£" : "$"}
+                        {currency}: {((commodity.price * (exchangeRates[currency] || 1)).toFixed(2))} {currency === "INR" ? "₹" : currency === "EUR" ? "€" : currency === "AED" ? "د.إ" : currency === "GBP" ? "£" : "$"}
                       </div>
                     ))}
                     <p className={`text-sm ${commodity.change >= 0 ? "text-green-500" : "text-red-500"}`}>
