@@ -4,24 +4,6 @@
 import { useState, useEffect } from "react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 
-// Define exchangeRates outside component to avoid recreating on each render
-const exchangeRates = {
-  INR: 85.42,
-  EUR: 0.95,
-  AED: 3.67,
-  USD: 1.0,
-  GBP: 0.80,
-}
-
-// Define currency symbols map
-const currencySymbols = {
-  INR: "₹",
-  EUR: "€",
-  AED: "د.إ",
-  GBP: "£",
-  USD: "$"
-}
-
 // Define types for better type safety
 type Cryptocurrency = {
   name: string;
@@ -31,16 +13,33 @@ type Cryptocurrency = {
   weekHigh52: number;
 }
 
-type SupportedCurrency = keyof typeof exchangeRates;
+type SupportedCurrency = "INR" | "EUR" | "AED" | "USD" | "GBP";
+
+// Exchange rates and currency symbols defined outside component
+const exchangeRates = {
+  INR: 85.42,
+  EUR: 0.95,
+  AED: 3.67,
+  USD: 1.0,
+  GBP: 0.80,
+};
+
+const currencySymbols = {
+  INR: "₹",
+  EUR: "€",
+  AED: "د.إ",
+  GBP: "£",
+  USD: "$"
+};
 
 export default function LivePricesTable({ 
-  defaultCurrency = "USD", 
+  defaultCurrency, 
   className 
 }: { 
   defaultCurrency: string; 
   className?: string 
 }) {
-  const [prices, setPrices] = useState<Cryptocurrency[]>([])
+  const [prices, setPrices] = useState<Cryptocurrency[]>([]);
 
   useEffect(() => {
     // Initialize with 15 cryptocurrencies on client side
@@ -60,40 +59,47 @@ export default function LivePricesTable({
       { name: "Chainlink", price: 1150, change: 2.30, marketCap: 7000000000, weekHigh52: 1300 },
       { name: "Algorand", price: 150, change: 0.25, marketCap: 1200000000, weekHigh52: 200 },
       { name: "VeChain", price: 0.025, change: -0.80, marketCap: 2000000000, weekHigh52: 0.030 },
-    ]
-    setPrices(initialPrices)
+    ];
+    setPrices(initialPrices);
 
-    // Update prices every 10 seconds
+    // Update prices every 10 seconds with more realistic changes
     const interval = setInterval(() => {
       setPrices((prev) =>
-        prev.map((price) => ({
-          ...price,
-          price: price.price + (Math.random() - 0.5) * (price.price * 0.02), // More realistic price changes (2% max)
-          change: parseFloat((price.change + (Math.random() - 0.5) * 0.5).toFixed(2)), // Smaller, more realistic changes
-          marketCap: price.marketCap + (Math.random() - 0.5) * (price.marketCap * 0.01), // More realistic market cap changes
-          weekHigh52: Math.max(price.weekHigh52, price.price), // Update 52-week high if current price is higher
-        }))
-      )
-    }, 10000)
+        prev.map((price) => {
+          const priceChange = (Math.random() - 0.5) * (price.price * 0.01); // More realistic 1% max change
+          const newPrice = price.price + priceChange;
+          const changePercentage = parseFloat((Math.random() * 5 - 2.5).toFixed(2));
+          
+          return {
+            ...price,
+            price: newPrice,
+            change: changePercentage,
+            marketCap: price.marketCap + (Math.random() - 0.5) * (price.marketCap * 0.005),
+            // Update 52-week high if current price exceeds it
+            weekHigh52: newPrice > price.weekHigh52 ? newPrice : price.weekHigh52,
+          };
+        })
+      );
+    }, 10000);
 
-    return () => clearInterval(interval)
-  }, []) // Removed defaultCurrency from dependency array as it's not used in the effect
+    return () => clearInterval(interval);
+  }, []); // Remove defaultCurrency dependency as it's not used in the effect
 
-  // Get currency rate safely
-  const rate = exchangeRates[defaultCurrency as SupportedCurrency] || 1
-  const currencySymbol = currencySymbols[defaultCurrency as SupportedCurrency] || "$"
+  // Get currency rate and symbol safely
+  const rate = exchangeRates[defaultCurrency as SupportedCurrency] || 1;
+  const currencySymbol = currencySymbols[defaultCurrency as SupportedCurrency] || "$";
   
-  // Format large numbers properly
-  const formatCurrency = (value: number) => {
+  // Format large numbers for better display
+  const formatValue = (value: number): string => {
     if (value >= 1000000000) {
-      return `${(value * rate / 1000000000).toFixed(2)}B`
+      return `${(value * rate / 1000000000).toFixed(2)}B`;
     } else if (value >= 1000000) {
-      return `${(value * rate / 1000000).toFixed(2)}M`
+      return `${(value * rate / 1000000).toFixed(2)}M`;
     } else if (value >= 1000) {
-      return `${(value * rate / 1000).toFixed(2)}K`
+      return `${(value * rate / 1000).toFixed(2)}K`;
     }
-    return (value * rate).toFixed(2)
-  }
+    return (value * rate).toFixed(2);
+  };
 
   return (
     <Table className={className}>
@@ -117,7 +123,7 @@ export default function LivePricesTable({
               {price.change >= 0 ? "+" : ""}{price.change.toFixed(2)}%
             </TableCell>
             <TableCell>
-              {currencySymbol}{formatCurrency(price.marketCap)}
+              {currencySymbol}{formatValue(price.marketCap)}
             </TableCell>
             <TableCell>
               {currencySymbol}{(price.weekHigh52 * rate).toFixed(2)}
@@ -126,5 +132,5 @@ export default function LivePricesTable({
         ))}
       </TableBody>
     </Table>
-  )
+  );
 }
