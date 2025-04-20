@@ -4,10 +4,43 @@
 import { useState, useEffect } from "react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 
-export default function LivePricesTable({ defaultCurrency, className }: { defaultCurrency: string; className?: string }) {
-  const [prices, setPrices] = useState<
-    { name: string; price: number; change: number; marketCap: number; weekHigh52: number }[]
-  >([])
+// Define exchangeRates outside component to avoid recreating on each render
+const exchangeRates = {
+  INR: 85.42,
+  EUR: 0.95,
+  AED: 3.67,
+  USD: 1.0,
+  GBP: 0.80,
+}
+
+// Define currency symbols map
+const currencySymbols = {
+  INR: "₹",
+  EUR: "€",
+  AED: "د.إ",
+  GBP: "£",
+  USD: "$"
+}
+
+// Define types for better type safety
+type Cryptocurrency = {
+  name: string;
+  price: number;
+  change: number;
+  marketCap: number;
+  weekHigh52: number;
+}
+
+type SupportedCurrency = keyof typeof exchangeRates;
+
+export default function LivePricesTable({ 
+  defaultCurrency = "USD", 
+  className 
+}: { 
+  defaultCurrency: string; 
+  className?: string 
+}) {
+  const [prices, setPrices] = useState<Cryptocurrency[]>([])
 
   useEffect(() => {
     // Initialize with 15 cryptocurrencies on client side
@@ -35,27 +68,32 @@ export default function LivePricesTable({ defaultCurrency, className }: { defaul
       setPrices((prev) =>
         prev.map((price) => ({
           ...price,
-          price: price.price + (Math.random() - 0.5) * 1000,
-          change: Math.random() * 5 - 2.5,
-          marketCap: price.marketCap + (Math.random() - 0.5) * 1000000000,
-          weekHigh52: price.weekHigh52 + (Math.random() - 0.5) * 500,
+          price: price.price + (Math.random() - 0.5) * (price.price * 0.02), // More realistic price changes (2% max)
+          change: parseFloat((price.change + (Math.random() - 0.5) * 0.5).toFixed(2)), // Smaller, more realistic changes
+          marketCap: price.marketCap + (Math.random() - 0.5) * (price.marketCap * 0.01), // More realistic market cap changes
+          weekHigh52: Math.max(price.weekHigh52, price.price), // Update 52-week high if current price is higher
         }))
       )
     }, 10000)
 
     return () => clearInterval(interval)
-  }, [defaultCurrency])
+  }, []) // Removed defaultCurrency from dependency array as it's not used in the effect
 
-  // Mock exchangeRates
-  const exchangeRates = {
-    INR: 85.42,
-    EUR: 0.95,
-    AED: 3.67,
-    USD: 1.0,
-    GBP: 0.80,
+  // Get currency rate safely
+  const rate = exchangeRates[defaultCurrency as SupportedCurrency] || 1
+  const currencySymbol = currencySymbols[defaultCurrency as SupportedCurrency] || "$"
+  
+  // Format large numbers properly
+  const formatCurrency = (value: number) => {
+    if (value >= 1000000000) {
+      return `${(value * rate / 1000000000).toFixed(2)}B`
+    } else if (value >= 1000000) {
+      return `${(value * rate / 1000000).toFixed(2)}M`
+    } else if (value >= 1000) {
+      return `${(value * rate / 1000).toFixed(2)}K`
+    }
+    return (value * rate).toFixed(2)
   }
-
-  const rate = exchangeRates[defaultCurrency as keyof typeof exchangeRates] || 1
 
   return (
     <Table className={className}>
@@ -73,19 +111,16 @@ export default function LivePricesTable({ defaultCurrency, className }: { defaul
           <TableRow key={price.name}>
             <TableCell>{price.name}</TableCell>
             <TableCell>
-              {defaultCurrency === "INR" ? "₹" : defaultCurrency === "EUR" ? "€" : defaultCurrency === "AED" ? "د.إ" : defaultCurrency === "GBP" ? "£" : "$"}
-              {(price.price * rate).toFixed(2)}
+              {currencySymbol}{(price.price * rate).toFixed(2)}
             </TableCell>
             <TableCell className={price.change >= 0 ? "text-green-500" : "text-red-500"}>
-              {price.change.toFixed(2)}%
+              {price.change >= 0 ? "+" : ""}{price.change.toFixed(2)}%
             </TableCell>
             <TableCell>
-              {defaultCurrency === "INR" ? "₹" : defaultCurrency === "EUR" ? "€" : defaultCurrency === "AED" ? "د.إ" : defaultCurrency === "GBP" ? "£" : "$"}
-              {(price.marketCap * rate).toFixed(2)}
+              {currencySymbol}{formatCurrency(price.marketCap)}
             </TableCell>
             <TableCell>
-              {defaultCurrency === "INR" ? "₹" : defaultCurrency === "EUR" ? "€" : defaultCurrency === "AED" ? "د.إ" : defaultCurrency === "GBP" ? "£" : "$"}
-              {(price.weekHigh52 * rate).toFixed(2)}
+              {currencySymbol}{(price.weekHigh52 * rate).toFixed(2)}
             </TableCell>
           </TableRow>
         ))}
