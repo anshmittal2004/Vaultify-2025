@@ -63,9 +63,7 @@ const StatsChart = ({ timeRange }: { timeRange: string }) => {
           x: { display: false },
           y: {
             beginAtZero: false,
-            ticks: { 
-              callback: (value) => `${typeof value === 'number' ? value.toLocaleString() : '0'}` 
-            },
+            ticks: { callback: (value) => `${value?.toLocaleString() || 0}` },
           },
         },
         plugins: {
@@ -73,9 +71,7 @@ const StatsChart = ({ timeRange }: { timeRange: string }) => {
           tooltip: {
             mode: "index",
             intersect: false,
-            callbacks: { 
-              label: (context) => `${context.dataset.label}: $${typeof context.parsed.y === 'number' ? context.parsed.y.toLocaleString() : '0'}` 
-            },
+            callbacks: { label: (context) => `${context.dataset.label}: $${context.parsed.y?.toLocaleString() || 0}` },
           },
         },
         animation: { duration: 0 },
@@ -225,17 +221,7 @@ export default function Page() {
     const commodityInterval = setInterval(fetchCommodities, 15000)
 
     const initializeCharts = () => {
-      const refs = { 
-        "Dow Jones": dowJonesRef, 
-        "S&P 500": sp500Ref, 
-        "Nasdaq": nasdaqRef, 
-        "Nifty 50": nifty50Ref, 
-        "Sensex": sensexRef, 
-        "Nikkei 225": nikkei225Ref, 
-        "Japan Market": japanMarketRef, 
-        "Hang Seng": hangSengRef 
-      }
-      
+      const refs = { "Dow Jones": dowJonesRef, "S&P 500": sp500Ref, "Nasdaq": nasdaqRef, "Nifty 50": nifty50Ref, "Sensex": sensexRef, "Nikkei 225": nikkei225Ref, "Japan Market": japanMarketRef, "Hang Seng": hangSengRef }
       if (!isChartsInitialized) {
         Object.entries(refs).forEach(([market, ref]) => {
           const ctx = ref.current?.getContext("2d")
@@ -243,56 +229,8 @@ export default function Page() {
             if (chartInstances[market]) chartInstances[market]?.destroy()
             const newChart = new Chart(ctx, {
               type: "line",
-              data: { 
-                labels: Array(10).fill(""), 
-                datasets: [{ 
-                  label: market, 
-                  data: Array(10).fill(0), 
-                  borderColor: getRandomColor(), 
-                  fill: false, 
-                  tension: 0.4, 
-                  pointRadius: 0 
-                }] 
-              },
-              options: { 
-                responsive: true, 
-                maintainAspectRatio: false, 
-                scales: { 
-                  y: { 
-                    beginAtZero: false, 
-                    ticks: { 
-                      callback: (value) => {
-                        if (typeof value === 'number') {
-                          return value.toLocaleString();
-                        }
-                        return '0';
-                      }
-                    }
-                  } 
-                }, 
-                plugins: { 
-                  legend: { 
-                    position: "top", 
-                    labels: { 
-                      boxWidth: 10, 
-                      padding: 10 
-                    } 
-                  }, 
-                  tooltip: { 
-                    mode: "index", 
-                    intersect: false, 
-                    callbacks: { 
-                      label: (context) => {
-                        if (typeof context.parsed.y === 'number') {
-                          return `${context.dataset.label}: $${context.parsed.y.toLocaleString()}`;
-                        }
-                        return `${context.dataset.label}: $0`;
-                      }
-                    } 
-                  } 
-                }, 
-                animation: { duration: 0 } 
-              },
+              data: { labels: Array(10).fill(""), datasets: [{ label: market, data: Array(10).fill(0), borderColor: getRandomColor(), fill: false, tension: 0.4, pointRadius: 0 }] },
+              options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: false, ticks: { callback: (value) => `${value.toLocaleString()}` } } }, plugins: { legend: { position: "top", labels: { boxWidth: 10, padding: 10 } }, tooltip: { mode: "index", intersect: false, callbacks: { label: (context) => `${context.dataset.label}: $${context.parsed.y.toLocaleString()}` } } }, animation: { duration: 0 } },
             })
             setChartInstances((prev) => ({ ...prev, [market]: newChart }))
           }
@@ -307,8 +245,7 @@ export default function Page() {
         const updated = { ...prev }
         Object.entries(updated).forEach(([market, instance]) => {
           if (instance) {
-            const data = instance.data.datasets[0].data;
-            const lastValue = typeof data[data.length - 1] === 'number' ? data[data.length - 1] as number : 0;
+            const lastValue = instance.data.datasets[0].data[instance.data.datasets[0].data.length - 1] as number || 0
             const fluctuation = (Math.random() - 0.5) * 100
             const newValue = Math.max(0, lastValue + fluctuation)
             instance.data.datasets[0].data.shift()
@@ -424,11 +361,7 @@ export default function Page() {
             </div>
             <Card className="mt-6 p-6 min-h-[20rem] max-h-[30rem]">
               <h3 className="text-lg font-semibold mb-2">Live News Dashboard</h3>
-              <div className="overflow-hidden h-[18rem] whitespace-nowrap bg-gray-800 rounded-lg">
-                <div className="animate-marquee inline-block text-yellow-300">
-                  {news.map((item, index) => <span key={index} className="mx-4 inline-block">{item}</span>)}
-                </div>
-              </div>
+              <div className="overflow-hidden h-[18rem] whitespace-nowrap bg-gray-800 rounded-lg"><div className="animate-marquee inline-block text-yellow-300">{news.map((item, index) => <span key={index} className="mx-4 inline-block">{item}</span>)}</div></div>
               <div className="mt-4 text-center"><Button variant="outline" onClick={handleMoreNews} className="text-blue-400 hover:scale-105 hover:shadow-lg transition-transform duration-300">More Live News</Button></div>
             </Card>
             <Card className="mt-6 p-6">
