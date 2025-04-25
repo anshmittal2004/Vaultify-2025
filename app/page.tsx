@@ -12,38 +12,74 @@ import { ThemeProvider } from "next-themes"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import Chart from "chart.js/auto"
 
+// Define initialValues globally with TypeScript type
+const initialValues: Record<string, number> = {
+  "Dow Jones": 39142.23,
+  "S&P 500": 5282.70,
+  "Nasdaq": 16286.45,
+  "Nifty 50": 23851.65,
+  "Sensex": 78553.20,
+  "Nikkei 225": 34730.28,
+  "Japan Market": 2559.15,
+  "Hang Seng": 21395.14,
+}
+
 const StatsChart = ({ timeRange }: { timeRange: string }) => {
   const chartRef = useRef<HTMLCanvasElement | null>(null)
-  const [chartInstance, setChartInstance] = useState<Chart | null>(null)
+  const chartInstanceRef = useRef<Chart | null>(null)
   const [marketData, setMarketData] = useState<Record<string, number[]>>({
-    "Dow Jones": [],
-    "S&P 500": [],
-    "Nasdaq": [],
-    "Nifty 50": [],
-    "Sensex": [],
-    "Nikkei 225": [],
-    "Japan Market": [],
-    "Hang Seng": [],
+    "Dow Jones": [], "S&P 500": [], "Nasdaq": [], "Nifty 50": [], "Sensex": [],
+    "Nikkei 225": [], "Japan Market": [], "Hang Seng": [],
   })
 
-  const initialValues = {
-    "Dow Jones": 39142.23,
-    "S&P 500": 5282.70,
-    "Nasdaq": 16286.45,
-    "Nifty 50": 23851.65,
-    "Sensex": 78553.20,
-    "Nikkei 225": 34730.28,
-    "Japan Market": 2559.15,
-    "Hang Seng": 21395.14,
+  const getDataPoints = () => {
+    switch (timeRange) {
+      case "1H": return 60
+      case "24H": return 1440
+      case "7D": return 10080
+      default: return 1440
+    }
+  }
+
+  const getUpdateInterval = () => {
+    switch (timeRange) {
+      case "1H": return 1000
+      case "24H": return 60000
+      case "7D": return 3600000
+      default: return 60000
+    }
+  }
+
+  const getRandomColor = () => {
+    const letters = "0123456789ABCDEF"
+    let color = "#"
+    for (let i = 0; i < 6; i++) color += letters[Math.floor(Math.random() * 16)]
+    return color
   }
 
   useEffect(() => {
-    const ctx = chartRef.current?.getContext("2d")
-    if (!ctx || chartInstance) return
+    if (!chartRef.current) return
 
+    const ctx = chartRef.current.getContext("2d")
+    if (!ctx) return
+
+    // Destroy existing chart instance
+    if (chartInstanceRef.current) {
+      chartInstanceRef.current.destroy()
+      chartInstanceRef.current = null
+    }
+
+    // Initialize data
+    const newData = Object.keys(initialValues).reduce((acc, market) => {
+      acc[market] = Array(getDataPoints()).fill(initialValues[market])
+      return acc
+    }, {} as Record<string, number[]>)
+    setMarketData(newData)
+
+    // Create new chart
     const datasets = Object.entries(initialValues).map(([market, value]) => ({
       label: market,
-      data: Array(getDataPoints()).fill(value),
+      data: newData[market],
       borderColor: getRandomColor(),
       fill: false,
       tension: 0.4,
@@ -77,73 +113,37 @@ const StatsChart = ({ timeRange }: { timeRange: string }) => {
         animation: { duration: 0 },
       },
     })
-    setChartInstance(newChart)
-    initializeData()
+    chartInstanceRef.current = newChart
 
-    const interval = setInterval(() => updateLiveData(), getUpdateInterval())
+    // Update live data
+    const interval = setInterval(() => {
+      setMarketData((prev) => {
+        const updated = { ...prev }
+        Object.keys(initialValues).forEach((market) => {
+          const currentData = updated[market] || Array(getDataPoints()).fill(initialValues[market])
+          const lastValue = currentData[currentData.length - 1] || initialValues[market]
+          const fluctuation = (Math.random() - 0.5) * 100
+          const newValue = Math.max(0, lastValue + fluctuation)
+          updated[market] = [...currentData.slice(-getDataPoints() + 1), newValue].slice(-getDataPoints())
+        })
+        if (chartInstanceRef.current) {
+          chartInstanceRef.current.data.datasets.forEach((dataset, index) => {
+            const market = Object.keys(initialValues)[index]
+            dataset.data = updated[market] || []
+          })
+          chartInstanceRef.current.update()
+        }
+        return updated
+      })
+    }, getUpdateInterval())
+
     return () => {
       clearInterval(interval)
-      if (newChart) newChart.destroy()
+      if (chartInstanceRef.current) {
+        chartInstanceRef.current.destroy()
+      }
     }
   }, [timeRange])
-
-  const getDataPoints = () => {
-    switch (timeRange) {
-      case "1H": return 60
-      case "24H": return 1440
-      case "7D": return 10080
-      default: return 1440
-    }
-  }
-
-  const getUpdateInterval = () => {
-    switch (timeRange) {
-      case "1H": return 1000
-      case "24H": return 60000
-      case "7D": return 3600000
-      default: return 60000
-    }
-  }
-
-  const initializeData = () => {
-    setMarketData((prev) => {
-      const newData = { ...prev }
-      Object.keys(initialValues).forEach((market) => {
-        newData[market] = Array(getDataPoints()).fill(initialValues[market as keyof typeof initialValues])
-      })
-      return newData
-    })
-  }
-
-  const updateLiveData = () => {
-    setMarketData((prev) => {
-      const newData = { ...prev }
-      Object.keys(initialValues).forEach((market) => {
-        const currentData = newData[market] || Array(getDataPoints()).fill(initialValues[market as keyof typeof initialValues])
-        const lastValue = currentData[currentData.length - 1] || initialValues[market as keyof typeof initialValues]
-        const fluctuation = (Math.random() - 0.5) * 100
-        const newValue = Math.max(0, lastValue + fluctuation)
-        newData[market] = [...currentData.slice(-getDataPoints() + 1), newValue].slice(-getDataPoints())
-      })
-      if (chartInstance) {
-        chartInstance.data.datasets.forEach((dataset, index) => {
-          const market = Object.keys(initialValues)[index]
-          dataset.data = newData[market] || []
-        })
-        chartInstance.update()
-      }
-      return newData
-    })
-  }
-
-  const getRandomColor = () => {
-    const letters = "0123456789ABCDEF"
-    let color = "#"
-    for (let i = 0; i < 6; i++) {
-      color += letters[Math.floor(Math.random() * 16)]
-    }
-    return color
-  }
 
   return (
     <div className="w-full h-64">
@@ -173,79 +173,106 @@ export default function Page() {
 
   const exchangeRates = { INR: 85.42, EUR: 0.95, AED: 3.67, USD: 1.0, GBP: 0.80 }
 
-  const dowJonesRef = useRef<HTMLCanvasElement | null>(null)
-  const sp500Ref = useRef<HTMLCanvasElement | null>(null)
-  const nasdaqRef = useRef<HTMLCanvasElement | null>(null)
-  const nifty50Ref = useRef<HTMLCanvasElement | null>(null)
-  const sensexRef = useRef<HTMLCanvasElement | null>(null)
-  const nikkei225Ref = useRef<HTMLCanvasElement | null>(null)
-  const japanMarketRef = useRef<HTMLCanvasElement | null>(null)
-  const hangSengRef = useRef<HTMLCanvasElement | null>(null)
+  const chartRefs = {
+    "Dow Jones": useRef<HTMLCanvasElement | null>(null),
+    "S&P 500": useRef<HTMLCanvasElement | null>(null),
+    "Nasdaq": useRef<HTMLCanvasElement | null>(null),
+    "Nifty 50": useRef<HTMLCanvasElement | null>(null),
+    "Sensex": useRef<HTMLCanvasElement | null>(null),
+    "Nikkei 225": useRef<HTMLCanvasElement | null>(null),
+    "Japan Market": useRef<HTMLCanvasElement | null>(null),
+    "Hang Seng": useRef<HTMLCanvasElement | null>(null),
+  }
 
   const [chartInstances, setChartInstances] = useState<Record<string, Chart | null>>({})
-  const [isChartsInitialized, setIsChartsInitialized] = useState(false)
+
+  const getRandomColor = () => {
+    const letters = "0123456789ABCDEF"
+    let color = "#"
+    for (let i = 0; i < 6; i++) color += letters[Math.floor(Math.random() * 16)]
+    return color
+  }
 
   useEffect(() => {
-    const audioInstance = new Audio("https://www.soundjay.com/buttons/button-1a.mp3")
+    // Initialize audio with error handling
+    const audioInstance = new Audio("/sounds/button-click.mp3") // Use local file or reliable CDN
     audioInstance.volume = 0.3
     setAudio(audioInstance)
 
+    // Initialize static data
     setLastUpdated(new Date().toLocaleString())
-    setCurrentTime(new Date().toLocaleTimeString()) // Initialize client-side time
+    setCurrentTime(new Date().toLocaleTimeString())
+    setNews([
+      `Bitcoin hits $50000 - ${new Date().toLocaleTimeString()}`,
+      `Ethereum surges 2% - ${new Date().toLocaleTimeString()}`,
+    ])
+    setCommodities([
+      { name: "Gold", price: 1800, change: 0.5, lastUpdated: new Date().toLocaleTimeString() },
+      { name: "Silver", price: 25, change: -0.2, lastUpdated: new Date().toLocaleTimeString() },
+    ])
 
-    const fetchNews = () => {
-      const newNews = [
+    // Initialize charts
+    const newChartInstances: Record<string, Chart | null> = {}
+    Object.entries(chartRefs).forEach(([market, ref]) => {
+      const ctx = ref.current?.getContext("2d")
+      if (ctx && initialValues[market]) {
+        if (chartInstances[market]) chartInstances[market]?.destroy()
+        const newChart = new Chart(ctx, {
+          type: "line",
+          data: {
+            labels: Array(10).fill(""),
+            datasets: [{
+              label: market,
+              data: Array(10).fill(initialValues[market]),
+              borderColor: getRandomColor(),
+              fill: false,
+              tension: 0.4,
+              pointRadius: 0,
+            }],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: { y: { beginAtZero: false, ticks: { callback: (value) => `${value.toLocaleString()}` } } },
+            plugins: {
+              legend: { position: "top", labels: { boxWidth: 10, padding: 10 } },
+              tooltip: { mode: "index", intersect: false, callbacks: { label: (context) => `${context.dataset.label}: $${context.parsed.y.toLocaleString()}` } },
+            },
+            animation: { duration: 0 },
+          },
+        })
+        newChartInstances[market] = newChart
+      }
+    })
+    setChartInstances(newChartInstances)
+
+    // Update news
+    const newsInterval = setInterval(() => {
+      setNews((prev) => [
         `Bitcoin hits $${(Math.random() * 10000 + 50000).toFixed(2)} - ${new Date().toLocaleTimeString()}`,
         `Ethereum surges ${Math.random() * 5}% - ${new Date().toLocaleTimeString()}`,
-        `Binance Coin up on volume - ${new Date().toLocaleTimeString()}`,
-        `Ripple sees ${Math.random() * 3}% dip - ${new Date().toLocaleTimeString()}`,
-        `Cardano announces new upgrade - ${new Date().toLocaleTimeString()}`,
-        `Solana network hits record TPS - ${new Date().toLocaleTimeString()}`,
-        `Polkadot parachain auction ends - ${new Date().toLocaleTimeString()}`,
-        `Dogecoin pumps after tweet - ${new Date().toLocaleTimeString()}`,
-      ].sort(() => Math.random() - 0.5)
-      setNews(newNews)
-      if (soundEnabled && audioInstance) audioInstance.play().catch((err) => console.error("Audio play failed:", err))
-    }
-    fetchNews()
-    const newsInterval = setInterval(fetchNews, 10000)
+        ...prev.slice(0, 6),
+      ])
+      if (soundEnabled && audioInstance) {
+        audioInstance.play().catch(() => console.log("Audio play failed"))
+      }
+    }, 10000)
 
-    const fetchCommodities = () => {
-      const newCommodities = [
+    // Update commodities
+    const commodityInterval = setInterval(() => {
+      setCommodities([
         { name: "Gold", price: Math.random() * 50 + 1800, change: (Math.random() - 0.5) * 2, lastUpdated: new Date().toLocaleTimeString() },
         { name: "Silver", price: Math.random() * 2 + 25, change: (Math.random() - 0.5) * 0.5, lastUpdated: new Date().toLocaleTimeString() },
-      ]
-      setCommodities(newCommodities)
-    }
-    fetchCommodities()
-    const commodityInterval = setInterval(fetchCommodities, 15000)
+      ])
+    }, 15000)
 
-    const initializeCharts = () => {
-      const refs = { "Dow Jones": dowJonesRef, "S&P 500": sp500Ref, "Nasdaq": nasdaqRef, "Nifty 50": nifty50Ref, "Sensex": sensexRef, "Nikkei 225": nikkei225Ref, "Japan Market": japanMarketRef, "Hang Seng": hangSengRef }
-      if (!isChartsInitialized) {
-        Object.entries(refs).forEach(([market, ref]) => {
-          const ctx = ref.current?.getContext("2d")
-          if (ctx) {
-            if (chartInstances[market]) chartInstances[market]?.destroy()
-            const newChart = new Chart(ctx, {
-              type: "line",
-              data: { labels: Array(10).fill(""), datasets: [{ label: market, data: Array(10).fill(0), borderColor: getRandomColor(), fill: false, tension: 0.4, pointRadius: 0 }] },
-              options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: false, ticks: { callback: (value) => `${value.toLocaleString()}` } } }, plugins: { legend: { position: "top", labels: { boxWidth: 10, padding: 10 } }, tooltip: { mode: "index", intersect: false, callbacks: { label: (context) => `${context.dataset.label}: $${context.parsed.y.toLocaleString()}` } } }, animation: { duration: 0 } },
-            })
-            setChartInstances((prev) => ({ ...prev, [market]: newChart }))
-          }
-        })
-        setIsChartsInitialized(true)
-      }
-    }
-    initializeCharts()
-
+    // Update charts
     const marketInterval = setInterval(() => {
       setChartInstances((prev) => {
         const updated = { ...prev }
         Object.entries(updated).forEach(([market, instance]) => {
-          if (instance) {
-            const lastValue = instance.data.datasets[0].data[instance.data.datasets[0].data.length - 1] as number || 0
+          if (instance && initialValues[market]) {
+            const lastValue = instance.data.datasets[0].data[instance.data.datasets[0].data.length - 1] as number || initialValues[market]
             const fluctuation = (Math.random() - 0.5) * 100
             const newValue = Math.max(0, lastValue + fluctuation)
             instance.data.datasets[0].data.shift()
@@ -257,16 +284,17 @@ export default function Page() {
       })
     }, 5000)
 
+    // Update time
     const timeInterval = setInterval(() => {
       setCurrentTime(new Date().toLocaleTimeString())
-    }, 1000) // Update time every second
+    }, 1000)
 
     return () => {
       clearInterval(newsInterval)
       clearInterval(commodityInterval)
       clearInterval(marketInterval)
       clearInterval(timeInterval)
-      Object.values(chartInstances).forEach((instance) => instance?.destroy())
+      Object.values(newChartInstances).forEach((instance) => instance?.destroy())
       if (audioInstance) audioInstance.pause()
     }
   }, [soundEnabled])
@@ -276,7 +304,7 @@ export default function Page() {
   const toggleSound = () => {
     setSoundEnabled(!soundEnabled)
     if (audio) {
-      if (!soundEnabled) audio.play().catch((err) => console.error("Audio play failed:", err))
+      if (!soundEnabled) audio.play().catch(() => console.log("Audio play failed"))
       else audio.pause()
     }
   }
@@ -294,13 +322,6 @@ export default function Page() {
   const handleSupport = () => { setSupportOpen(!supportOpen); alert("Support chat opened! Contact us at support@vaultify.com") }
   const handleMoreNews = () => alert("More Live News coming soon! Check https://coinmarketcap.com/news/ for updates.")
   const handleExploreMore = () => (window.location.href = "https://www.binance.com")
-
-  const getRandomColor = () => {
-    const letters = "0123456789ABCDEF"
-    let color = "#"
-    for (let i = 0; i < 6; i++) color += letters[Math.floor(Math.random() * 16)]
-    return color
-  }
 
   return (
     <ThemeProvider attribute="class" defaultTheme="dark" forcedTheme={theme}>
@@ -367,14 +388,12 @@ export default function Page() {
             <Card className="mt-6 p-6">
               <h3 className="text-lg font-semibold mb-4">Market Indices Fluctuations</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="relative w-full h-48"><canvas ref={dowJonesRef} id="dow-jones-chart" />{!chartInstances["Dow Jones"] && <p className="text-red-500">Chart failed to load for Dow Jones.</p>}</div>
-                <div className="relative w-full h-48"><canvas ref={sp500Ref} id="sp500-chart" />{!chartInstances["S&P 500"] && <p className="text-red-500">Chart failed to load for S&P 500.</p>}</div>
-                <div className="relative w-full h-48"><canvas ref={nasdaqRef} id="nasdaq-chart" />{!chartInstances["Nasdaq"] && <p className="text-red-500">Chart failed to load for Nasdaq.</p>}</div>
-                <div className="relative w-full h-48"><canvas ref={nifty50Ref} id="nifty50-chart" />{!chartInstances["Nifty 50"] && <p className="text-red-500">Chart failed to load for Nifty 50.</p>}</div>
-                <div className="relative w-full h-48"><canvas ref={sensexRef} id="sensex-chart" />{!chartInstances["Sensex"] && <p className="text-red-500">Chart failed to load for Sensex.</p>}</div>
-                <div className="relative w-full h-48"><canvas ref={nikkei225Ref} id="nikkei225-chart" />{!chartInstances["Nikkei 225"] && <p className="text-red-500">Chart failed to load for Nikkei 225.</p>}</div>
-                <div className="relative w-full h-48"><canvas ref={japanMarketRef} id="japan-market-chart" />{!chartInstances["Japan Market"] && <p className="text-red-500">Chart failed to load for Japan Market.</p>}</div>
-                <div className="relative w-full h-48"><canvas ref={hangSengRef} id="hang-seng-chart" />{!chartInstances["Hang Seng"] && <p className="text-red-500">Chart failed to load for Hang Seng.</p>}</div>
+                {Object.entries(chartRefs).map(([market, ref]) => (
+                  <div key={market} className="relative w-full h-48">
+                    <canvas ref={ref} id={`${market.toLowerCase().replace(" ", "-")}-chart`} />
+                    {!chartInstances[market] && <p className="text-red-500">Chart failed to load for {market}.</p>}
+                  </div>
+                ))}
               </div>
             </Card>
             <div className="mt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
