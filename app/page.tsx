@@ -1,11 +1,11 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
+import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { MetricsCard } from "@/components/metrics-card"
 import { VaultTable } from "@/components/vault-table"
-import { BarChart3, ChevronDown, Globe, Home, LayoutDashboard, LifeBuoy, Settings, Wallet } from "lucide-react"
+import { BarChart3, ChevronDown, Globe, LayoutDashboard, LifeBuoy, Settings, Wallet } from "lucide-react"
 import LivePricesTable from "@/components/live_prices-table"
 import { useState, useEffect, useRef } from "react"
 import { ThemeProvider } from "next-themes"
@@ -99,7 +99,7 @@ const StatsChart = ({ timeRange }: { timeRange: string }) => {
           x: { display: false },
           y: {
             beginAtZero: false,
-            ticks: { callback: (value) => `${value?.toLocaleString() || 0}` },
+            ticks: { callback: (value) => `${Number(value).toLocaleString()}` },
           },
         },
         plugins: {
@@ -107,7 +107,7 @@ const StatsChart = ({ timeRange }: { timeRange: string }) => {
           tooltip: {
             mode: "index",
             intersect: false,
-            callbacks: { label: (context) => `${context.dataset.label}: $${context.parsed.y?.toLocaleString() || 0}` },
+            callbacks: { label: (context) => `${context.dataset.label}: $${Number(context.parsed.y).toLocaleString()}` },
           },
         },
         animation: { duration: 0 },
@@ -119,21 +119,20 @@ const StatsChart = ({ timeRange }: { timeRange: string }) => {
     const interval = setInterval(() => {
       setMarketData((prev) => {
         const updated = { ...prev }
-        Object.keys(initialValues).forEach((market) => {
-          // Ensure market is a valid key
-          if (!(market in initialValues)) return
-
-          // Get current data or initialize with initialValues
-          const currentData = updated[market] ?? Array(getDataPoints()).fill(initialValues[market] ?? 0)
-          // Get last value or fallback to initialValues
-          const lastValue = currentData.length > 0 ? currentData[currentData.length - 1] : (initialValues[market] ?? 0)
+        Object.keys(initialValues).forEach((market: keyof typeof initialValues) => {
+          let currentData = updated[market] ?? Array(getDataPoints()).fill(initialValues[market] ?? 0)
+          if (!Array.isArray(currentData)) {
+            console.warn(`Invalid data for ${market}, resetting`)
+            currentData = Array(getDataPoints()).fill(initialValues[market] ?? 0)
+          }
+          const lastValue = currentData.length > 0 ? Number(currentData[currentData.length - 1]) || (initialValues[market] ?? 0) : (initialValues[market] ?? 0)
           const fluctuation = (Math.random() - 0.5) * 100
           const newValue = Math.max(0, lastValue + fluctuation)
           updated[market] = [...currentData.slice(-getDataPoints() + 1), newValue].slice(-getDataPoints())
         })
         if (chartInstanceRef.current) {
           chartInstanceRef.current.data.datasets.forEach((dataset, index) => {
-            const market = Object.keys(initialValues)[index]
+            const market = Object.keys(initialValues)[index] as keyof typeof initialValues
             dataset.data = updated[market] ?? []
           })
           chartInstanceRef.current.update()
@@ -238,10 +237,10 @@ export default function Page() {
           options: {
             responsive: true,
             maintainAspectRatio: false,
-            scales: { y: { beginAtZero: false, ticks: { callback: (value) => `${value.toLocaleString()}` } } },
+            scales: { y: { beginAtZero: false, ticks: { callback: (value) => `${Number(value).toLocaleString()}` } } },
             plugins: {
               legend: { position: "top", labels: { boxWidth: 10, padding: 10 } },
-              tooltip: { mode: "index", intersect: false, callbacks: { label: (context) => `${context.dataset.label}: $${context.parsed.y.toLocaleString()}` } },
+              tooltip: { mode: "index", intersect: false, callbacks: { label: (context) => `${context.dataset.label}: $${Number(context.parsed.y).toLocaleString()}` } },
             },
             animation: { duration: 0 },
           },
@@ -277,7 +276,7 @@ export default function Page() {
         const updated = { ...prev }
         Object.entries(updated).forEach(([market, instance]) => {
           if (instance && market in initialValues) {
-            const lastValue = instance.data.datasets[0].data[instance.data.datasets[0].data.length - 1] as number || (initialValues[market] ?? 0)
+            const lastValue = Number(instance.data.datasets[0].data[instance.data.datasets[0].data.length - 1]) || (initialValues[market] ?? 0)
             const fluctuation = (Math.random() - 0.5) * 100
             const newValue = Math.max(0, lastValue + fluctuation)
             instance.data.datasets[0].data.shift()
