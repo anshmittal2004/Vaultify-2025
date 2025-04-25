@@ -20,7 +20,7 @@ const initialValues: Record<string, number> = {
   "Nifty 50": 23851.65,
   "Sensex": 78553.20,
   "Nikkei 225": 34730.28,
-  "Japan Market": 2559.15,
+  "Euro STOXX 50": 2559.15,
   "Hang Seng": 21395.14,
 }
 
