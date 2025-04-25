@@ -12,7 +12,7 @@ import { ThemeProvider } from "next-themes"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import Chart from "chart.js/auto"
 
-// Define initialValues globally with TypeScript type
+// Define initialValues globally with explicit type
 const initialValues: Record<string, number> = {
   "Dow Jones": 39142.23,
   "S&P 500": 5282.70,
@@ -71,7 +71,7 @@ const StatsChart = ({ timeRange }: { timeRange: string }) => {
 
     // Initialize data
     const newData = Object.keys(initialValues).reduce((acc, market) => {
-      acc[market] = Array(getDataPoints()).fill(initialValues[market])
+      acc[market] = Array(getDataPoints()).fill(initialValues[market] ?? 0)
       return acc
     }, {} as Record<string, number[]>)
     setMarketData(newData)
@@ -79,7 +79,7 @@ const StatsChart = ({ timeRange }: { timeRange: string }) => {
     // Create new chart
     const datasets = Object.entries(initialValues).map(([market, value]) => ({
       label: market,
-      data: newData[market],
+      data: newData[market] || [],
       borderColor: getRandomColor(),
       fill: false,
       tension: 0.4,
@@ -120,8 +120,13 @@ const StatsChart = ({ timeRange }: { timeRange: string }) => {
       setMarketData((prev) => {
         const updated = { ...prev }
         Object.keys(initialValues).forEach((market) => {
-          const currentData = updated[market] || Array(getDataPoints()).fill(initialValues[market])
-          const lastValue = currentData[currentData.length - 1] || initialValues[market]
+          // Ensure market is a valid key
+          if (!(market in initialValues)) return
+
+          // Get current data or initialize with initialValues
+          const currentData = updated[market] ?? Array(getDataPoints()).fill(initialValues[market] ?? 0)
+          // Get last value or fallback to initialValues
+          const lastValue = currentData.length > 0 ? currentData[currentData.length - 1] : (initialValues[market] ?? 0)
           const fluctuation = (Math.random() - 0.5) * 100
           const newValue = Math.max(0, lastValue + fluctuation)
           updated[market] = [...currentData.slice(-getDataPoints() + 1), newValue].slice(-getDataPoints())
@@ -129,7 +134,7 @@ const StatsChart = ({ timeRange }: { timeRange: string }) => {
         if (chartInstanceRef.current) {
           chartInstanceRef.current.data.datasets.forEach((dataset, index) => {
             const market = Object.keys(initialValues)[index]
-            dataset.data = updated[market] || []
+            dataset.data = updated[market] ?? []
           })
           chartInstanceRef.current.update()
         }
@@ -195,7 +200,7 @@ export default function Page() {
 
   useEffect(() => {
     // Initialize audio with error handling
-    const audioInstance = new Audio("/sounds/button-click.mp3") // Use local file or reliable CDN
+    const audioInstance = new Audio("https://cdn.pixabay.com/audio/2022/03/10/audio_5b3b7f1b1e.mp3")
     audioInstance.volume = 0.3
     setAudio(audioInstance)
 
@@ -215,7 +220,7 @@ export default function Page() {
     const newChartInstances: Record<string, Chart | null> = {}
     Object.entries(chartRefs).forEach(([market, ref]) => {
       const ctx = ref.current?.getContext("2d")
-      if (ctx && initialValues[market]) {
+      if (ctx && market in initialValues) {
         if (chartInstances[market]) chartInstances[market]?.destroy()
         const newChart = new Chart(ctx, {
           type: "line",
@@ -223,7 +228,7 @@ export default function Page() {
             labels: Array(10).fill(""),
             datasets: [{
               label: market,
-              data: Array(10).fill(initialValues[market]),
+              data: Array(10).fill(initialValues[market] ?? 0),
               borderColor: getRandomColor(),
               fill: false,
               tension: 0.4,
@@ -271,8 +276,8 @@ export default function Page() {
       setChartInstances((prev) => {
         const updated = { ...prev }
         Object.entries(updated).forEach(([market, instance]) => {
-          if (instance && initialValues[market]) {
-            const lastValue = instance.data.datasets[0].data[instance.data.datasets[0].data.length - 1] as number || initialValues[market]
+          if (instance && market in initialValues) {
+            const lastValue = instance.data.datasets[0].data[instance.data.datasets[0].data.length - 1] as number || (initialValues[market] ?? 0)
             const fluctuation = (Math.random() - 0.5) * 100
             const newValue = Math.max(0, lastValue + fluctuation)
             instance.data.datasets[0].data.shift()
