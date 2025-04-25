@@ -1,23 +1,20 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { MetricsCard } from "@/components/metrics-card"
 import { VaultTable } from "@/components/vault-table"
-import { BarChart3, ChevronDown, Globe, LayoutDashboard, LifeBuoy, Settings, Wallet } from "lucide-react"
-import LivePricesTable from "@/components/live-prices-table"
+import { BarChart3, ChevronDown, Globe, Home, LayoutDashboard, LifeBuoy, Settings, Wallet } from "lucide-react"
+import LivePricesTable from "@/components/live_prices-table"
 import { useState, useEffect, useRef } from "react"
 import { ThemeProvider } from "next-themes"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import dynamic from "next/dynamic"
-
-// Dynamically import Chart.js to avoid SSR issues
-const Chart = dynamic(() => import("chart.js/auto"), { ssr: false })
+import Chart from "chart.js/auto"
 
 const StatsChart = ({ timeRange }: { timeRange: string }) => {
   const chartRef = useRef<HTMLCanvasElement | null>(null)
-  const [chartInstance, setChartInstance] = useState<any>(null) // Use any to avoid type issues during dynamic import
+  const [chartInstance, setChartInstance] = useState<Chart | null>(null)
   const [marketData, setMarketData] = useState<Record<string, number[]>>({
     "Dow Jones": [],
     "S&P 500": [],
@@ -41,10 +38,8 @@ const StatsChart = ({ timeRange }: { timeRange: string }) => {
   }
 
   useEffect(() => {
-    if (typeof window === "undefined" || chartInstance) return
-
     const ctx = chartRef.current?.getContext("2d")
-    if (!ctx) return
+    if (!ctx || chartInstance) return
 
     const datasets = Object.entries(initialValues).map(([market, value]) => ({
       label: market,
@@ -96,7 +91,7 @@ const StatsChart = ({ timeRange }: { timeRange: string }) => {
     switch (timeRange) {
       case "1H": return 60
       case "24H": return 1440
-      case "7D": return 168 // Reduced from 10080 for performance
+      case "7D": return 10080
       default: return 1440
     }
   }
@@ -131,7 +126,7 @@ const StatsChart = ({ timeRange }: { timeRange: string }) => {
         newData[market] = [...currentData.slice(-getDataPoints() + 1), newValue].slice(-getDataPoints())
       })
       if (chartInstance) {
-        chartInstance.data.datasets.forEach((dataset: any, index: number) => {
+        chartInstance.data.datasets.forEach((dataset, index) => {
           const market = Object.keys(initialValues)[index]
           dataset.data = newData[market] || []
         })
@@ -187,19 +182,16 @@ export default function Page() {
   const japanMarketRef = useRef<HTMLCanvasElement | null>(null)
   const hangSengRef = useRef<HTMLCanvasElement | null>(null)
 
-  const [chartInstances, setChartInstances] = useState<Record<string, any>>({})
+  const [chartInstances, setChartInstances] = useState<Record<string, Chart | null>>({})
   const [isChartsInitialized, setIsChartsInitialized] = useState(false)
 
   useEffect(() => {
-    // Check for client-side execution
-    if (typeof window === "undefined") return
-
-    const audioInstance = new Audio("/button-1a.mp3") // Local asset
+    const audioInstance = new Audio("https://www.soundjay.com/buttons/button-1a.mp3")
     audioInstance.volume = 0.3
     setAudio(audioInstance)
 
     setLastUpdated(new Date().toLocaleString())
-    setCurrentTime(new Date().toLocaleTimeString())
+    setCurrentTime(new Date().toLocaleTimeString()) // Initialize client-side time
 
     const fetchNews = () => {
       const newNews = [
@@ -267,7 +259,7 @@ export default function Page() {
 
     const timeInterval = setInterval(() => {
       setCurrentTime(new Date().toLocaleTimeString())
-    }, 1000)
+    }, 1000) // Update time every second
 
     return () => {
       clearInterval(newsInterval)
