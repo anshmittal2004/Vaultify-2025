@@ -1,4 +1,4 @@
-// components/live-prices-table.tsx
+// components/live_prices-table.tsx
 "use client"
 
 import { useState, useEffect } from "react"
@@ -42,34 +42,32 @@ export default function LivePricesTable({
   const [prices, setPrices] = useState<Cryptocurrency[]>([]);
 
   useEffect(() => {
-    // Check for client-side execution
-    if (typeof window === "undefined") return
-
     // Initialize with 15 cryptocurrencies on client side
     const initialPrices = [
-      { name: "Bitcoin", price: 51252.00, change: 1.38, marketCap: 1000000000000, weekHigh52: 60000.00 },
-      { name: "Ethereum", price: 2562.60, change: 0.86, marketCap: 300000000000, weekHigh52: 3000.00 },
-      { name: "Binance Coin", price: 427.10, change: -2.11, marketCap: 80000000000, weekHigh52: 500.00 },
-      { name: "Ripple", price: 45.30, change: 0.45, marketCap: 50000000000, weekHigh52: 60.00 },
-      { name: "Cardano", price: 3.45, change: -1.23, marketCap: 20000000000, weekHigh52: 5.00 },
-      { name: "Solana", price: 125.00, change: 2.10, marketCap: 60000000000, weekHigh52: 150.00 },
-      { name: "Polkadot", price: 4.80, change: -0.89, marketCap: 7000000000, weekHigh52: 6.00 },
-      { name: "Dogecoin", price: 0.125, change: 3.15, marketCap: 18000000000, weekHigh52: 0.15 },
-      { name: "Avalanche", price: 23.00, change: 1.67, marketCap: 10000000000, weekHigh52: 25.00 },
+      { name: "Bitcoin", price: 5125200, change: 1.38, marketCap: 1000000000000, weekHigh52: 6000000 },
+      { name: "Ethereum", price: 256260, change: 0.86, marketCap: 300000000000, weekHigh52: 300000 },
+      { name: "Binance Coin", price: 42710, change: -2.11, marketCap: 80000000000, weekHigh52: 50000 },
+      { name: "Ripple", price: 4530, change: 0.45, marketCap: 50000000000, weekHigh52: 6000 },
+      { name: "Cardano", price: 345, change: -1.23, marketCap: 20000000000, weekHigh52: 500 },
+      { name: "Solana", price: 12500, change: 2.10, marketCap: 60000000000, weekHigh52: 15000 },
+      { name: "Polkadot", price: 480, change: -0.89, marketCap: 7000000000, weekHigh52: 600 },
+      { name: "Dogecoin", price: 12.5, change: 3.15, marketCap: 18000000000, weekHigh52: 15 },
+      { name: "Avalanche", price: 2300, change: 1.67, marketCap: 10000000000, weekHigh52: 2500 },
       { name: "Shiba Inu", price: 0.000017, change: -0.50, marketCap: 10000000000, weekHigh52: 0.000020 },
-      { name: "Polygon", price: 0.45, change: 0.92, marketCap: 5000000000, weekHigh52: 0.60 },
-      { name: "Cosmos", price: 5.20, change: -1.75, marketCap: 2000000000, weekHigh52: 7.00 },
-      { name: "Chainlink", price: 11.50, change: 2.30, marketCap: 7000000000, weekHigh52: 13.00 },
-      { name: "Algorand", price: 1.50, change: 0.25, marketCap: 1200000000, weekHigh52: 2.00 },
+      { name: "Polygon", price: 45, change: 0.92, marketCap: 5000000000, weekHigh52: 60 },
+      { name: "Cosmos", price: 520, change: -1.75, marketCap: 2000000000, weekHigh52: 700 },
+      { name: "Chainlink", price: 1150, change: 2.30, marketCap: 7000000000, weekHigh52: 1300 },
+      { name: "Algorand", price: 150, change: 0.25, marketCap: 1200000000, weekHigh52: 200 },
       { name: "VeChain", price: 0.025, change: -0.80, marketCap: 2000000000, weekHigh52: 0.030 },
     ];
     setPrices(initialPrices);
 
+    // Update prices every 10 seconds with more realistic changes
     const interval = setInterval(() => {
       setPrices((prev) =>
         prev.map((price) => {
           const priceChange = (Math.random() - 0.5) * (price.price * 0.01); // More realistic 1% max change
-          const newPrice = Math.max(0, price.price + priceChange);
+          const newPrice = price.price + priceChange;
           const changePercentage = parseFloat((Math.random() * 5 - 2.5).toFixed(2));
           
           return {
@@ -77,6 +75,7 @@ export default function LivePricesTable({
             price: newPrice,
             change: changePercentage,
             marketCap: price.marketCap + (Math.random() - 0.5) * (price.marketCap * 0.005),
+            // Update 52-week high if current price exceeds it
             weekHigh52: newPrice > price.weekHigh52 ? newPrice : price.weekHigh52,
           };
         })
@@ -84,11 +83,13 @@ export default function LivePricesTable({
     }, 10000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, []); // Remove defaultCurrency dependency as it's not used in the effect
 
+  // Get currency rate and symbol safely
   const rate = exchangeRates[defaultCurrency as SupportedCurrency] || 1;
   const currencySymbol = currencySymbols[defaultCurrency as SupportedCurrency] || "$";
   
+  // Format large numbers for better display
   const formatValue = (value: number): string => {
     if (value >= 1000000000) {
       return `${(value * rate / 1000000000).toFixed(2)}B`;
