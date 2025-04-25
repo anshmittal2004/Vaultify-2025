@@ -12,7 +12,7 @@ import { ThemeProvider } from "next-themes"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import Chart from "chart.js/auto"
 
-// Define initialValues globally with explicit type
+// Define initialValues globally with TypeScript type
 const initialValues: Record<string, number> = {
   "Dow Jones": 39142.23,
   "S&P 500": 5282.70,
@@ -71,7 +71,7 @@ const StatsChart = ({ timeRange }: { timeRange: string }) => {
 
     // Initialize data
     const newData = Object.keys(initialValues).reduce((acc, market) => {
-      acc[market] = Array(getDataPoints()).fill(initialValues[market] ?? 0)
+      acc[market] = Array(getDataPoints()).fill(initialValues[market])
       return acc
     }, {} as Record<string, number[]>)
     setMarketData(newData)
@@ -120,8 +120,8 @@ const StatsChart = ({ timeRange }: { timeRange: string }) => {
       setMarketData((prev) => {
         const updated = { ...prev }
         Object.keys(initialValues).forEach((market) => {
-          const currentData = updated[market] || Array(getDataPoints()).fill(initialValues[market] ?? 0)
-          const lastValue = currentData[currentData.length - 1] || initialValues[market] ?? 0
+          const currentData = updated[market] || Array(getDataPoints()).fill(initialValues[market])
+          const lastValue = currentData[currentData.length - 1] || initialValues[market]
           const fluctuation = (Math.random() - 0.5) * 100
           const newValue = Math.max(0, lastValue + fluctuation)
           updated[market] = [...currentData.slice(-getDataPoints() + 1), newValue].slice(-getDataPoints())
@@ -184,7 +184,7 @@ export default function Page() {
     "Hang Seng": useRef<HTMLCanvasElement | null>(null),
   }
 
-  const [chart    const [chartInstances, setChartInstances] = useState<Record<string, Chart | null>>({})
+  const [chartInstances, setChartInstances] = useState<Record<string, Chart | null>>({})
 
   const getRandomColor = () => {
     const letters = "0123456789ABCDEF"
@@ -195,7 +195,7 @@ export default function Page() {
 
   useEffect(() => {
     // Initialize audio with error handling
-    const audioInstance = new Audio("https://cdn.pixabay.com/audio/2022/03/10/audio_5b3b7f1b1e.mp3") // Reliable CDN
+    const audioInstance = new Audio("/sounds/button-click.mp3") // Use local file or reliable CDN
     audioInstance.volume = 0.3
     setAudio(audioInstance)
 
@@ -215,7 +215,7 @@ export default function Page() {
     const newChartInstances: Record<string, Chart | null> = {}
     Object.entries(chartRefs).forEach(([market, ref]) => {
       const ctx = ref.current?.getContext("2d")
-      if (ctx && initialValues[market] !== undefined) {
+      if (ctx && initialValues[market]) {
         if (chartInstances[market]) chartInstances[market]?.destroy()
         const newChart = new Chart(ctx, {
           type: "line",
@@ -271,7 +271,7 @@ export default function Page() {
       setChartInstances((prev) => {
         const updated = { ...prev }
         Object.entries(updated).forEach(([market, instance]) => {
-          if (instance && initialValues[market] !== undefined) {
+          if (instance && initialValues[market]) {
             const lastValue = instance.data.datasets[0].data[instance.data.datasets[0].data.length - 1] as number || initialValues[market]
             const fluctuation = (Math.random() - 0.5) * 100
             const newValue = Math.max(0, lastValue + fluctuation)
