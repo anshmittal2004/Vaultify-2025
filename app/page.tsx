@@ -29,7 +29,7 @@ const StatsChart = ({ timeRange }: { timeRange: string }) => {
   const chartInstanceRef = useRef<Chart | null>(null)
   const [marketData, setMarketData] = useState<Record<string, number[]>>({
     "Dow Jones": [], "S&P 500": [], "Nasdaq": [], "Nifty 50": [], "Sensex": [],
-    "Nikkei 225": [], "Japan Market": [], "Hang Seng": [],
+    "Nikkei 225": [], "Euro STOXX 50": [], "Hang Seng": [],
   })
 
   const getDataPoints = () => {
@@ -184,7 +184,7 @@ export default function Page() {
     "Nifty 50": useRef<HTMLCanvasElement | null>(null),
     "Sensex": useRef<HTMLCanvasElement | null>(null),
     "Nikkei 225": useRef<HTMLCanvasElement | null>(null),
-    "Japan Market": useRef<HTMLCanvasElement | null>(null),
+    "Euro STOXX 50": useRef<HTMLCanvasElement | null>(null),
     "Hang Seng": useRef<HTMLCanvasElement | null>(null),
   }
 
